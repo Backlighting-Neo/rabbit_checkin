@@ -1,6 +1,7 @@
-const secret = require('../secret');
+const fetch = require('node-fetch');
+const secret = require('../../secret');
 
-function handleApi1() {
+function handleApi1(requestDetail) {
   return {
     response: {
       statusCode: 200,
@@ -12,17 +13,27 @@ function handleApi1() {
   }
 }
 
-function handleApi2() {
-
-  return {
+function handleApi2(requestDetail) {
+  return fetch(`http://localhost:${secret.controller_port}/add_task`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      url: requestDetail.url,
+      method: requestDetail.requestOptions.method,
+      headers: requestDetail.requestOptions.headers,
+      data: requestDetail.requestData.toString()
+    })
+  })
+  .then(res => res.json())
+  .then(json => ({
     response: {
       statusCode: 200,
       header: {
         'Content-Type': 'text/html;charset=utf-8'
       },
-      body: secret.fakeResponse.api2
+      body: `{"status":"0","info":"${json.message}"}`
     }
-  }
+  }))
 }
 
 module.exports = {

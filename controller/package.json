@@ -1,5 +1,5 @@
 {
-  "name": "fake_checkin_proxy",
+  "name": "fake_checkin_controller",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -9,7 +9,10 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "anyproxy": "^4.0.12",
-    "node-fetch": "^2.3.0"
+    "koa": "^2.6.2",
+    "koa-body": "^4.0.4",
+    "koa-router": "^7.4.0",
+    "mysql": "^2.16.0",
+    "ws": "^6.1.2"
   }
 }
