@@ -65,5 +65,13 @@ module.exports = {
 
   *beforeDealHttpsRequest(requestDetail) {
     return requestDetail.host === fullHost;
+  },
+
+  *onError() {
+    return null;
+  },
+
+  *onConnectError() {
+    return null
   }
 }
