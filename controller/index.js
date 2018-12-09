@@ -92,4 +92,4 @@ app.use(async (ctx, next) => {
 })
 app.use(router.routes());
 app.listen(secret.controller_port);
-console.log(`${new Date()} Web(Koa)服务启动 监听端口${secret.controller_ws_port}`);
+console.log(`${new Date()} Web(Koa)服务启动 监听端口${secret.controller_port}`);
