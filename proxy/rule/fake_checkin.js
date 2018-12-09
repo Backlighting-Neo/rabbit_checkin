@@ -62,8 +62,6 @@ module.exports = {
   },
 
   *beforeDealHttpsRequest(requestDetail) {
-    const { requestOptions } = requestDetail;
-    const { hostname, path } = requestOptions;
-    return hostname === secret.host;
+    return requestDetail.host === secret.host;
   }
 }
