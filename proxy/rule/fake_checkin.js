@@ -1,6 +1,8 @@
 const fetch = require('node-fetch');
 const secret = require('../../secret');
 
+const fullHost = `${secret.host}:${secret.port}`;
+
 function handleApi1(requestDetail) {
   return {
     response: {
@@ -62,6 +64,6 @@ module.exports = {
   },
 
   *beforeDealHttpsRequest(requestDetail) {
-    return requestDetail.host === secret.host;
+    return requestDetail.host === fullHost;
   }
 }
