@@ -59,5 +59,11 @@ module.exports = {
     }
 
     return null;
+  },
+
+  *beforeDealHttpsRequest(requestDetail) {
+    const { requestOptions } = requestDetail;
+    const { hostname, path } = requestOptions;
+    return hostname === secret.host;
   }
 }

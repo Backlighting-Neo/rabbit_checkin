@@ -2,7 +2,6 @@ const AnyProxy = require('anyproxy');
 
 const options = {
   port: 8888,
-  forceProxyHttps: true,
   rule: require('./rule/fake_checkin'),
 }
 
