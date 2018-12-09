@@ -83,6 +83,15 @@ router.post('/update_task', async (ctx) => {
     message: '任务更新成功'
   }
 })
+router.get('/task', async (ctx) => {
+  const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
+  ctx.body = JSON.stringify(results.map(item => ({
+    id: item.id,
+    create_time: item.create_time,
+    update_time: item.update_time,
+    result: item.shell_result
+  })), null, 2);
+})
 app.use(koaBody());
 app.use(async (ctx, next) => {
   const startTime = Date.now();
