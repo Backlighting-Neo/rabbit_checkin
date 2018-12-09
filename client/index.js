@@ -41,8 +41,7 @@ ws.addEventListener('message', (message) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         taskId, 
-        // response: text
-        response: '123'
+        response: text
       })
     })
   })
