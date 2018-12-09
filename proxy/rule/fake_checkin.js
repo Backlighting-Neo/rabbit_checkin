@@ -17,6 +17,13 @@ function handleApi2(requestDetail) {
   return fetch(`http://localhost:${secret.controller_port}/add_task`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    /**
+     * 任务详情格式
+     *  url - 请求的网址
+     *  method - 请求方式
+     *  headers - 请求头
+     *  data - 请求body
+     */
     body: JSON.stringify({
       url: requestDetail.url,
       method: requestDetail.requestOptions.method,

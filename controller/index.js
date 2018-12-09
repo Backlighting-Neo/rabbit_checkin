@@ -3,6 +3,7 @@ const router = require('koa-router')();
 const koaBody = require('koa-body');
 const WebSocket = require('ws');
 const mysql = require('mysql');
+const des = require('./des.js');
 const secret = require('../secret');
 
 console.log(`${new Date()} 程序开始运行`);
@@ -40,32 +41,48 @@ wss.on('connection', function connection(client) {
   wsClient = client;
 });
 wss.on('close', function () {
+  console.log(`${new Date()} 客户端离线`);
   wsClient = null;
 })
 
 const app = new Koa();
 router.post('/add_task', async (ctx) => {
-    const body = ctx.request.body;
-    if(!wsClient) {
-      ctx.body = {
-        code: 2,
-        message: '没有上线的执行端'
-      }
-      return;
-    }
-    await mysqlConn.queryPromise(`Insert Into f_task(shell_command) Values('${JSON.stringify(body)}')`);
-    const results = await mysqlConn.queryPromise(`Select id from f_task order by id desc limit 1`);
-    wsClient.send(JSON.stringify({
-      type: 'fetch',
-      payload: body
-    }));
+  const body = ctx.request.body;
+  if(!wsClient) {
     ctx.body = {
-      code: 0,
-      message: `执行成功，任务编号${results[0].id}`
-    };
+      code: 2,
+      message: '没有上线的执行端'
+    }
+    return;
   }
-);
-// TODO update task echo api
+  await mysqlConn.queryPromise(`Insert Into f_task(shell_command) Values('${JSON.stringify(body)}')`);
+  const results = await mysqlConn.queryPromise(`Select id from f_task order by id desc limit 1`);
+  const taskId = results[0].id;
+  /**
+   * 任务详情格式（body）
+   *  url - 请求的网址
+   *  method - 请求方式
+   *  headers - 请求头
+   *  data - 请求body
+   */
+  wsClient.send(des.desEncrypt(JSON.stringify({
+    type: 'fetch',
+    taskId,
+    payload: body
+  }), secret.des.key));
+  ctx.body = {
+    code: 0,
+    message: `执行成功，任务编号${taskId}`
+  };
+});
+router.post('/update_task', async (ctx) => {
+  const {taskId, response} = ctx.request.body;
+  await mysqlConn.queryPromise(`Update f_task Set shell_result='${response}' Where id=${taskId}`);
+  ctx.body = {
+    code: 0,
+    message: '任务更新成功'
+  }
+})
 app.use(koaBody());
 app.use(async (ctx, next) => {
   const startTime = Date.now();
