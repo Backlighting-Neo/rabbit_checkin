@@ -7,6 +7,7 @@ const des = require('./des.js');
 const secret = require('../secret');
 
 function getFormatTime(date = new Date()) {
+  if(!date) return null;
   return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}\t`;
 }
 
