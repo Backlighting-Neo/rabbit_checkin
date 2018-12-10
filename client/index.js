@@ -29,8 +29,8 @@ ws.addEventListener('open', () => {
   heartBeatTimer = setInterval(() => {
     ws.send('ping');
 
-    if(Date.now - lastPongTimestamp > 3*heartBeatDuration) {
-      console.log(`${getFormatTime()} 超过${3*heartBeatDuration/1000}秒未收到pong，开始重连`);
+    if(Date.now() - lastPongTimestamp > 3*heartBeatDuration) {
+      console.log(`${getFormatTime()} 超过${3*heartBeatDuration/1000}秒未收到pong 开始重连控制服务器`);
       ws.reconnect();
     }
   }, heartBeatDuration);
@@ -65,7 +65,7 @@ ws.addEventListener('message', (message) => {
   })
   .then(res => res.text())
   .then(text => {
-    console.log(`${getFormatTime()} ${url}开始完成`);
+    console.log(`${getFormatTime()} 请求${url}完成`);
     console.log(`${getFormatTime()} 返回内容：${text}`);
     console.log(`${getFormatTime()} 任务${taskId}状态开始回写`);
     return fetch(`http://${secret.controller_host}:${secret.controller_port}/update_task`, {
