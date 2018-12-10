@@ -6,7 +6,11 @@ const mysql = require('mysql');
 const des = require('./des.js');
 const secret = require('../secret');
 
-console.log(`${new Date()} 程序开始运行`);
+function getFormatTime(date = new Date()) {
+  return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}\t`;
+}
+
+console.log(`${getFormatTime()} 程序开始运行`);
 const mysqlConn = mysql.createConnection({
   host: secret.mysql.host,
   port: secret.mysql.port,
@@ -16,11 +20,11 @@ const mysqlConn = mysql.createConnection({
 });
 mysqlConn.connect(function (err) {
   if (err) {
-    console.error(`${new Date()} Mysql连接异常: ${err.stack}`);
+    console.error(`${getFormatTime()} Mysql连接异常: ${err.stack}`);
     process.exit(-1);
     return;
   }
-  console.error(`${new Date()} Mysql连接成功，线程号${mysqlConn.threadId}`);
+  console.log(`${getFormatTime()} Mysql连接成功，线程号${mysqlConn.threadId}`);
 });
 mysqlConn.queryPromise = sql => new Promise((resolve, reject) => {
   mysqlConn.query(sql, function (error, results, fields) {
@@ -30,20 +34,28 @@ mysqlConn.queryPromise = sql => new Promise((resolve, reject) => {
 })
 
 let wsClient = null;
+let lastClientAliveTime = null;
 const wss = new WebSocket.Server({ port: secret.controller_ws_port });
-console.log(`${new Date()} Websocket服务启动 监听端口${secret.controller_ws_port}`);
+console.log(`${getFormatTime()} Websocket服务启动 监听端口${secret.controller_ws_port}`);
 wss.on('connection', function connection(client) {
-  console.log(`${new Date()} Websocket客户端请求连接`);
+  console.log(`${getFormatTime()} Websocket客户端请求连接`);
   if(wsClient) {
-    console.log(`${new Date()} 关闭既有客户端`);
+    console.log(`${getFormatTime()} 关闭既有客户端`);
     wsClient.close();
   }
+  lastClientAliveTime = new Date();
   wsClient = client;
+
+  wsClient.on('message', function(data) {
+    if(data !== 'ping') return;
+    lastClientAliveTime = new Date();
+    wsClient.send('pong');
+  })
+  wsClient.on('close', function () {
+    console.log(`${getFormatTime()} 客户端离线`);
+    wsClient = null;
+  })
 });
-wss.on('close', function () {
-  console.log(`${new Date()} 客户端离线`);
-  wsClient = null;
-})
 
 const app = new Koa();
 router.post('/add_task', async (ctx) => {
@@ -55,9 +67,15 @@ router.post('/add_task', async (ctx) => {
     }
     return;
   }
-  await mysqlConn.queryPromise(`Insert Into f_task(shell_command) Values('${JSON.stringify(body)}')`);
-  const results = await mysqlConn.queryPromise(`Select id from f_task order by id desc limit 1`);
-  const taskId = results[0].id;
+  let taskId = -1;
+  try {
+    await mysqlConn.queryPromise(`Insert Into f_task(shell_command) Values('${JSON.stringify(body)}')`);
+    const results = await mysqlConn.queryPromise(`Select id from f_task order by id desc limit 1`);
+    taskId = results[0].id;
+  }
+  catch(err) {
+    console.error(`${getFormatTime()} 数据库执行异常`, err);
+  }
   /**
    * 任务详情格式（body）
    *  url - 请求的网址
@@ -77,7 +95,9 @@ router.post('/add_task', async (ctx) => {
 });
 router.post('/update_task', async (ctx) => {
   const {taskId, response} = ctx.request.body;
-  await mysqlConn.queryPromise(`Update f_task Set shell_result='${response}' Where id=${taskId}`);
+  if(taskId > 0) {
+    await mysqlConn.queryPromise(`Update f_task Set shell_result='${response}' Where id=${taskId}`);
+  }
   ctx.body = {
     code: 0,
     message: '任务更新成功'
@@ -85,20 +105,23 @@ router.post('/update_task', async (ctx) => {
 })
 router.get('/task', async (ctx) => {
   const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
-  ctx.body = JSON.stringify(results.map(item => ({
-    id: item.id,
-    create_time: item.create_time,
-    update_time: item.update_time,
-    result: item.shell_result
-  })), null, 2);
+  ctx.body = JSON.stringify({
+    lastActiveTime: getFormatTime(lastClientAliveTime),
+    task_list: results.map(item => ({
+      id: item.id,
+      create_time: item.create_time,
+      update_time: item.update_time,
+      result: item.shell_result
+    }))
+  }, null, 2);
 })
 app.use(koaBody());
 app.use(async (ctx, next) => {
   const startTime = Date.now();
-  console.log(`--> ${new Date()} ${ctx.request.path} ${JSON.stringify(ctx.request.body)}`);
+  console.log(`--> ${getFormatTime()} ${ctx.request.path} ${JSON.stringify(ctx.request.body)}`);
   await next();
-  console.log(`<-- ${new Date()} ${ctx.request.path} ${JSON.stringify(ctx.body)} ${Date.now()-startTime}ms`);
+  console.log(`<-- ${getFormatTime()} ${ctx.request.path} ${JSON.stringify(ctx.body)} ${Date.now()-startTime}ms`);
 })
 app.use(router.routes());
 app.listen(secret.controller_port);
-console.log(`${new Date()} Web(Koa)服务启动 监听端口${secret.controller_port}`);
+console.log(`${getFormatTime()} Web(Koa)服务启动 监听端口${secret.controller_port}`);
