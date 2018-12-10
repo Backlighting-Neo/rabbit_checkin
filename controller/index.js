@@ -107,7 +107,7 @@ router.post('/update_task', async (ctx) => {
 router.get('/task', async (ctx) => {
   const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
   ctx.body = JSON.stringify({
-    lastActiveTime: getFormatTime(lastClientAliveTime),
+    last_active_time: getFormatTime(lastClientAliveTime),
     task_list: results.map(item => ({
       id: item.id,
       create_time: item.create_time,
