@@ -3,12 +3,13 @@ const router = require('koa-router')();
 const koaBody = require('koa-body');
 const WebSocket = require('ws');
 const mysql = require('mysql');
+const moment = require('moment');
 const des = require('./des.js');
 const secret = require('../secret');
 
 function getFormatTime(date = new Date()) {
   if(!date) return null;
-  return `${date.getFullYear()}-${date.getMonth()+1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}.${date.getMilliseconds()}\t`;
+  return moment(date).format('YYYY-MM-DD HH:mm:ss.SSS');
 }
 
 console.log(`${getFormatTime()} 程序开始运行`);
@@ -108,6 +109,7 @@ router.get('/task', async (ctx) => {
   const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
   ctx.body = JSON.stringify({
     last_active_time: getFormatTime(lastClientAliveTime),
+    duration_after_active: lastClientAliveTime && moment.duration(moment(lastClientAliveTime).diff(moment())).humanize(true),
     is_clinet_active: !!wsClient,
     task_list: results.map(item => ({
       id: item.id,
