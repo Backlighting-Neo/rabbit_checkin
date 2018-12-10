@@ -108,6 +108,7 @@ router.get('/task', async (ctx) => {
   const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
   ctx.body = JSON.stringify({
     last_active_time: getFormatTime(lastClientAliveTime),
+    is_clinet_active: !!wsClient,
     task_list: results.map(item => ({
       id: item.id,
       create_time: item.create_time,
