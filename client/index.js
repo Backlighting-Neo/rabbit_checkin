@@ -18,7 +18,8 @@ const ws = new ReconnectingWebSocket(`ws://${secret.controller_host}:${secret.co
 });
 let lastPongTimestamp = null;
 let heartBeatTimer = null;
-const heartBeatDuration = 10 * 1000;
+const heartBeatDuration = 5 * 60 * 1000;
+const startupTime = Date.now();
 
 console.log(`${getFormatTime()} 尝试连接服务器`);
 ws.addEventListener('open', () => {
@@ -26,9 +27,17 @@ ws.addEventListener('open', () => {
 
   lastPongTimestamp = Date.now();
   if(heartBeatTimer) clearInterval(heartBeatTimer);
+
+  ws.send(JSON.stringify({
+    type: 'startup',
+    payload: {
+      startupTime,
+      connectTime: Date.now()
+    }
+  }));
+
   heartBeatTimer = setInterval(() => {
     ws.send('ping');
-
     if(Date.now() - lastPongTimestamp > 3*heartBeatDuration) {
       console.log(`${getFormatTime()} 超过${3*heartBeatDuration/1000}秒未收到pong 开始重连控制服务器`);
       ws.reconnect();

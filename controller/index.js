@@ -14,6 +14,8 @@ function getFormatTime(date = new Date()) {
 
 console.log(`${getFormatTime()} 程序开始运行`);
 const startupTime = Date.now();
+let clientStartupTime = null;
+let clientConnectTime = null;
 
 const mysqlConn = mysql.createConnection({
   host: secret.mysql.host,
@@ -51,9 +53,18 @@ wss.on('connection', function connection(client) {
   wsClient = client;
 
   wsClient.on('message', function(data) {
-    if(data !== 'ping') return;
-    lastClientAliveTime = new Date();
-    wsClient.send('pong');
+    if(data === 'ping') {
+      lastClientAliveTime = new Date();
+      wsClient.send('pong');
+      return;
+    }
+    const {type, payload} = JSON.parse(data);
+    if(type === 'startup') {
+      const {startupTime, connectTime} = payload;
+      clientStartupTime = startupTime;
+      clientConnectTime = connectTime;
+      return;
+    }
   })
   wsClient.on('close', function () {
     console.log(`${getFormatTime()} 客户端离线`);
@@ -116,11 +127,13 @@ router.get('/task', async (ctx) => {
     console.error(`${getFormatTime()} 查询任务失败`, err);
   }
   ctx.body = JSON.stringify({
-    last_active_time: getFormatTime(lastClientAliveTime),
-    duration_after_active: lastClientAliveTime && moment.duration(moment(lastClientAliveTime).diff(moment())).humanize(true),
     is_clinet_active: !!wsClient,
+    last_active_time: getFormatTime(lastClientAliveTime),
+    // duration_after_active: lastClientAliveTime && moment.duration(moment(lastClientAliveTime).diff(moment())).humanize(true),
     server_up_time: getFormatTime(startupTime),
-    server_up_duration: moment.duration(Date.now() - startupTime).humanize(),
+    // server_up_duration: moment.duration(Date.now() - startupTime).humanize(),
+    client_startup_time: getFormatTime(clientStartupTime),
+    client_connect_time: getFormatTime(clientConnectTime),
     task_list: task_list.map(item => ({
       id: item.id,
       create_time: getFormatTime(item.create_time),
