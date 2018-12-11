@@ -13,6 +13,8 @@ function getFormatTime(date = new Date()) {
 }
 
 console.log(`${getFormatTime()} 程序开始运行`);
+const startupTime = Date.now();
+
 const mysqlConn = mysql.createConnection({
   host: secret.mysql.host,
   port: secret.mysql.port,
@@ -76,7 +78,7 @@ router.post('/add_task', async (ctx) => {
     taskId = results[0].id;
   }
   catch(err) {
-    console.error(`${getFormatTime()} 数据库执行异常`, err);
+    console.error(`${getFormatTime()} 创建任务失败`, err);
   }
   /**
    * 任务详情格式（body）
@@ -106,15 +108,23 @@ router.post('/update_task', async (ctx) => {
   }
 })
 router.get('/task', async (ctx) => {
-  const results = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
+  let task_list = null;
+  try {
+    task_list = await mysqlConn.queryPromise('Select * From f_task Order by id DESC limit 5');
+  }
+  catch(error) {
+    console.error(`${getFormatTime()} 查询任务失败`, err);
+  }
   ctx.body = JSON.stringify({
     last_active_time: getFormatTime(lastClientAliveTime),
     duration_after_active: lastClientAliveTime && moment.duration(moment(lastClientAliveTime).diff(moment())).humanize(true),
     is_clinet_active: !!wsClient,
-    task_list: results.map(item => ({
+    server_up_time: getFormatTime(startupTime),
+    server_up_duration: moment.duration(Date.now() - startupTime).humanize(),
+    task_list: task_list.map(item => ({
       id: item.id,
-      create_time: item.create_time,
-      update_time: item.update_time,
+      create_time: getFormatTime(item.create_time),
+      update_time: getFormatTime(item.update_time),
       result: item.shell_result
     }))
   }, null, 2);
@@ -122,9 +132,9 @@ router.get('/task', async (ctx) => {
 app.use(koaBody());
 app.use(async (ctx, next) => {
   const startTime = Date.now();
-  console.log(`--> ${getFormatTime()} ${ctx.request.path} ${JSON.stringify(ctx.request.body)}`);
+  console.log(`${getFormatTime()} --> ${ctx.request.path} ${JSON.stringify(ctx.request.body)}`);
   await next();
-  console.log(`<-- ${getFormatTime()} ${ctx.request.path} ${JSON.stringify(ctx.body)} ${Date.now()-startTime}ms`);
+  console.log(`${getFormatTime()} <-- ${ctx.request.path} ${JSON.stringify(ctx.body)} ${Date.now()-startTime}ms`);
 })
 app.use(router.routes());
 app.listen(secret.controller_port);
