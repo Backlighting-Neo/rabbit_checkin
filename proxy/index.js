@@ -14,9 +14,9 @@ proxyServer.on('error', err => {
   console.error(err);
 })
 
-process.on('uncaughtException', console.error);
-process.on('unhandledRejection', console.error);
 
 proxyServer.start();
 
+process.on('uncaughtException', console.error);
+process.on('unhandledRejection', console.error);
 process.on('exit', proxyServer.close);
